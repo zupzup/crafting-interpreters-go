@@ -4,16 +4,109 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/pkg/errors"
+	"github.com/zupzup/crafting-interpreters-go/constants"
 	"io/ioutil"
 	"log"
 	"os"
 )
 
 // Scanner scans tokens
-type Scanner struct{}
+type Scanner struct {
+	Source  string
+	Tokens  []Token
+	start   int
+	current int
+	line    int
+}
+
+func newScanner(source string) *Scanner {
+	return &Scanner{
+		Source: source,
+	}
+}
+
+func (s *Scanner) scanTokens() []Token {
+	s.Tokens = []Token{}
+	for !s.isAtEnd() {
+		s.start = s.current
+		s.scanToken()
+	}
+	s.Tokens = append(s.Tokens, Token{
+		TokenType: constants.EOF,
+		Lexeme:    "",
+		Literal:   nil,
+		Line:      s.line,
+	})
+	return s.Tokens
+}
+
+func (s *Scanner) scanToken() {
+	b := s.advance()
+	switch b {
+	case '(':
+		s.addToken(constants.LeftParen, nil)
+	case ')':
+		s.addToken(constants.RightParen, nil)
+	case '{':
+		s.addToken(constants.LeftBrace, nil)
+	case '}':
+		s.addToken(constants.RightBrace, nil)
+	case ',':
+		s.addToken(constants.Comma, nil)
+	case '.':
+		s.addToken(constants.Dot, nil)
+	case '-':
+		s.addToken(constants.Minus, nil)
+	case '+':
+		s.addToken(constants.Plus, nil)
+	case ';':
+		s.addToken(constants.Semicolon, nil)
+	case '*':
+		s.addToken(constants.Star, nil)
+	default:
+		logError(s.line, "Unexpected character.")
+	}
+}
+
+func (s *Scanner) advance() byte {
+	s.current = s.current + 1
+	return s.Source[s.current-1]
+}
+
+func (s *Scanner) addToken(tokenType int, literal interface{}) {
+	text := s.Source[s.start:s.current]
+	s.Tokens = append(s.Tokens, Token{
+		TokenType: tokenType,
+		Lexeme:    text,
+		Literal:   literal,
+		Line:      s.line,
+	})
+}
+
+func (s *Scanner) isAtEnd() bool {
+	return s.current >= len(s.Source)
+}
 
 // Token is a token
-type Token struct{}
+type Token struct {
+	TokenType int
+	Lexeme    string
+	Literal   interface{}
+	Line      int
+}
+
+func newToken(tokenType int, lexeme string, literal interface{}, line int) Token {
+	return Token{
+		TokenType: tokenType,
+		Lexeme:    lexeme,
+		Literal:   literal,
+		Line:      line,
+	}
+}
+
+func (t Token) String() string {
+	return fmt.Sprintf("%d %s %v", t.TokenType, t.Lexeme, t.Literal)
+}
 
 func main() {
 	if len(os.Args) > 2 {
@@ -64,10 +157,6 @@ func run(code string) error {
 		fmt.Println(token)
 	}
 	return nil
-}
-
-func (s *Scanner) scanTokens() []Token {
-	return []Token{}
 }
 
 func logError(line int, message string) {
