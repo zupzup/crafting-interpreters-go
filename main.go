@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 )
 
 // Scanner scans tokens
@@ -102,11 +103,58 @@ func (s *Scanner) scanToken() error {
 	case '\t':
 	case '\n':
 		s.line = s.line + 1
+	case '"':
+		err := s.string()
+		if err != nil {
+			logError(s.line, err.Error())
+			return err
+		}
 	default:
-		logError(s.line, "Unexpected character.")
-		return errors.New("unexpected character")
+		if s.isDigit(b) {
+			s.number()
+		} else {
+			logError(s.line, "Unexpected character.")
+			return errors.New("unexpected character")
+		}
 	}
 	return nil
+}
+
+func (s *Scanner) string() error {
+	for s.peek() != '"' && !s.isAtEnd() {
+		if s.peek() == '\n' {
+			s.line = s.line + 1
+		}
+		s.advance()
+	}
+
+	if s.isAtEnd() {
+		return errors.New("unterminated string")
+	}
+
+	s.advance()
+
+	value := s.Source[s.start+1 : s.current-1]
+	s.addToken(constants.Str, value)
+	return nil
+}
+
+func (s *Scanner) number() {
+	for s.isDigit(s.peek()) {
+		s.advance()
+	}
+	if s.peek() == '.' && s.isDigit(s.peekNext()) {
+		s.advance()
+	}
+	for s.isDigit(s.peek()) {
+		s.advance()
+	}
+	v, _ := strconv.ParseFloat(s.Source[s.start:s.current], 64)
+	s.addToken(constants.Number, v)
+}
+
+func (s *Scanner) isDigit(b byte) bool {
+	return b >= '0' && b <= '9'
 }
 
 func (s *Scanner) advance() byte {
@@ -119,6 +167,13 @@ func (s *Scanner) peek() byte {
 		return '\000'
 	}
 	return s.Source[s.current]
+}
+
+func (s *Scanner) peekNext() byte {
+	if s.current+1 >= len(s.Source) {
+		return '\000'
+	}
+	return s.Source[s.current+1]
 }
 
 func (s *Scanner) match(expected byte) bool {
