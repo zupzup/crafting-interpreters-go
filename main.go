@@ -112,6 +112,8 @@ func (s *Scanner) scanToken() error {
 	default:
 		if s.isDigit(b) {
 			s.number()
+		} else if s.isAlpha(b) {
+			s.identifier()
 		} else {
 			logError(s.line, "Unexpected character.")
 			return errors.New("unexpected character")
@@ -153,8 +155,29 @@ func (s *Scanner) number() {
 	s.addToken(constants.Number, v)
 }
 
+func (s *Scanner) identifier() {
+	for s.isAlphaNumeric(s.peek()) {
+		s.advance()
+	}
+	text := s.Source[s.start:s.current]
+	tokenType := constants.Keywords[text]
+	fmt.Println(tokenType)
+	if tokenType == 0 {
+		tokenType = constants.Identifier
+	}
+	s.addToken(tokenType, nil)
+}
+
 func (s *Scanner) isDigit(b byte) bool {
 	return b >= '0' && b <= '9'
+}
+
+func (s *Scanner) isAlpha(b byte) bool {
+	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_'
+}
+
+func (s *Scanner) isAlphaNumeric(b byte) bool {
+	return s.isAlpha(b) || s.isDigit(b)
 }
 
 func (s *Scanner) advance() byte {

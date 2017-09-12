@@ -2,7 +2,7 @@ package constants
 
 // Constants
 const (
-	LeftParen = iota
+	LeftParen = iota + 1
 	RightParen
 	LeftBrace
 	RightBrace
@@ -42,3 +42,23 @@ const (
 	While
 	EOF
 )
+
+// Keywords are the keysords
+var Keywords = map[string]int{
+	"and":    And,
+	"class":  Class,
+	"else":   Else,
+	"false":  False,
+	"for":    For,
+	"fun":    Fun,
+	"if":     If,
+	"nil":    Nil,
+	"or":     Or,
+	"print":  Print,
+	"return": Return,
+	"super":  Super,
+	"this":   This,
+	"true":   True,
+	"var":    Var,
+	"while":  While,
+}
