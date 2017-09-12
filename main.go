@@ -25,11 +25,15 @@ func newScanner(source string) *Scanner {
 	}
 }
 
-func (s *Scanner) scanTokens() []Token {
+func (s *Scanner) scanTokens() ([]Token, error) {
+	hadError := false
 	s.Tokens = []Token{}
 	for !s.isAtEnd() {
 		s.start = s.current
-		s.scanToken()
+		err := s.scanToken()
+		if err != nil {
+			hadError = true
+		}
 	}
 	s.Tokens = append(s.Tokens, Token{
 		TokenType: constants.EOF,
@@ -37,10 +41,13 @@ func (s *Scanner) scanTokens() []Token {
 		Literal:   nil,
 		Line:      s.line,
 	})
-	return s.Tokens
+	if hadError {
+		return nil, errors.New("error")
+	}
+	return s.Tokens, nil
 }
 
-func (s *Scanner) scanToken() {
+func (s *Scanner) scanToken() error {
 	b := s.advance()
 	switch b {
 	case '(':
@@ -63,14 +70,66 @@ func (s *Scanner) scanToken() {
 		s.addToken(constants.Semicolon, nil)
 	case '*':
 		s.addToken(constants.Star, nil)
+	case '!':
+		if s.match('=') {
+			s.addToken(constants.BangEqual, nil)
+		}
+		s.addToken(constants.Bang, nil)
+	case '=':
+		if s.match('=') {
+			s.addToken(constants.BangEqual, nil)
+		}
+		s.addToken(constants.Equal, nil)
+	case '<':
+		if s.match('=') {
+			s.addToken(constants.LessEqual, nil)
+		}
+		s.addToken(constants.Less, nil)
+	case '>':
+		if s.match('=') {
+			s.addToken(constants.GreateEqual, nil)
+		}
+		s.addToken(constants.Greater, nil)
+	case '/':
+		if s.match('/') {
+			for s.peek() != '\n' && !s.isAtEnd() {
+				s.advance()
+			}
+		}
+		s.addToken(constants.Slash, nil)
+	case ' ':
+	case '\r':
+	case '\t':
+	case '\n':
+		s.line = s.line + 1
 	default:
 		logError(s.line, "Unexpected character.")
+		return errors.New("unexpected character")
 	}
+	return nil
 }
 
 func (s *Scanner) advance() byte {
 	s.current = s.current + 1
 	return s.Source[s.current-1]
+}
+
+func (s *Scanner) peek() byte {
+	if s.isAtEnd() {
+		return '\000'
+	}
+	return s.Source[s.current]
+}
+
+func (s *Scanner) match(expected byte) bool {
+	if s.isAtEnd() {
+		return false
+	}
+	if s.Source[s.current] != expected {
+		return false
+	}
+	s.current = s.current + 1
+	return true
 }
 
 func (s *Scanner) addToken(tokenType int, literal interface{}) {
@@ -150,8 +209,11 @@ func runFile(path string) error {
 }
 
 func run(code string) error {
-	scanner := Scanner{}
-	tokens := scanner.scanTokens()
+	scanner := Scanner{Source: code}
+	tokens, err := scanner.scanTokens()
+	if err != nil {
+		return err
+	}
 
 	for _, token := range tokens {
 		fmt.Println(token)
