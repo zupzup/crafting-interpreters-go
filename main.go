@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/pkg/errors"
+	"github.com/zupzup/crafting-interpreters-go/ast"
 	"github.com/zupzup/crafting-interpreters-go/scanner"
 	"io/ioutil"
 	"log"
@@ -11,6 +12,11 @@ import (
 )
 
 func main() {
+	blub := ast.Binary{}
+	bla := ast.Unary{}
+	p := ast.Printer{}
+	fmt.Println(p.Print(&blub))
+	fmt.Println(p.Print(&bla))
 	if len(os.Args) > 2 {
 		fmt.Println("Usage: lox [script]")
 	} else if len(os.Args) > 1 {
@@ -62,12 +68,4 @@ func run(code string) error {
 		fmt.Println(token)
 	}
 	return nil
-}
-
-func logError(line int, message string) {
-	report(line, "", message)
-}
-
-func report(line int, where, message string) {
-	fmt.Printf("[line %d] Error %s: %s\n", line, where, message)
 }
